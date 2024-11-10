@@ -1,0 +1,52 @@
+import streamlit as st
+import pandas as pd
+import random
+import os
+
+# 初期設定
+IMAGE_FOLDER = "images"  # 画像フォルダのパス
+RATINGS_FILE = "ratings.csv"  # 評価を保存するCSVファイル
+
+# CSVファイルが存在しない場合は新規作成
+if not os.path.exists(RATINGS_FILE):
+    with open(RATINGS_FILE, "w") as f:
+        f.write("image,rating\n")
+
+# 画像リストの取得
+images = [f for f in os.listdir(IMAGE_FOLDER) if f.endswith(('.png', '.jpg', '.jpeg'))]
+
+# CSVから評価データを読み込み
+ratings_df = pd.read_csv(RATINGS_FILE)
+
+# タイトル
+st.title("ランダム画像評価アプリ")
+
+# ランダムに画像を表示
+random_image = random.choice(images)
+st.image(os.path.join(IMAGE_FOLDER, random_image), caption="評価する画像", use_column_width=True)
+
+# 評価入力
+rating = st.slider("この画像を評価してください（1-10）", 1, 10, 5)
+submit = st.button("評価を保存")
+
+if submit:
+    # 評価をCSVファイルに保存
+    with open(RATINGS_FILE, "a") as f:
+        f.write(f"{random_image},{rating}\n")
+    
+    st.success(f"{random_image} の評価が保存されました！")
+
+    # CSVファイルを再読み込み
+    ratings_df = pd.read_csv(RATINGS_FILE)
+
+# 評価の平均ランキング
+if not ratings_df.empty:
+    st.subheader("ランキング")
+
+    # 画像ごとの平均評価を計算
+    avg_ratings = ratings_df.groupby("image")["rating"].mean().reset_index()
+    avg_ratings = avg_ratings.rename(columns={"rating": "平均評価"})
+    avg_ratings = avg_ratings.sort_values(by="平均評価", ascending=False)
+
+    # ランキングを表示
+    st.table(avg_ratings)
